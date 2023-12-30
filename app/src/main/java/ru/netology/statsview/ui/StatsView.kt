@@ -39,6 +39,7 @@ class StatsView @JvmOverloads constructor(
                 getColor(R.styleable.StatsView_color2, generateRandomColor()),
                 getColor(R.styleable.StatsView_color3, generateRandomColor()),
                 getColor(R.styleable.StatsView_color4, generateRandomColor()),
+                getColor(R.styleable.StatsView_color5, generateRandomColor()),
             )
         }
     }
@@ -68,6 +69,14 @@ class StatsView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
     }
 
+    private val emptyCircle = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        strokeWidth = lineWidth.toFloat()
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        color = colors[4]
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         radius = min(w, h) / 2F - lineWidth
         center = PointF(w / 2F, h / 2F)
@@ -83,21 +92,31 @@ class StatsView @JvmOverloads constructor(
         if (data.isEmpty()) {
             return
         }
+        val text = data.sum() / (data.max() * data.count()) * 100F
+
+        if (text != 100F) {
+            canvas.drawCircle(center.x, center.y, radius, emptyCircle)
+        }
 
         var startAngle = -90F
         data.forEachIndexed { index, datum ->
-            val angle = datum * 360
+            val angle = datum / (data.max() * data.count()) * 360
             paint.color = colors.getOrElse(index) { generateRandomColor() }
             canvas.drawArc(oval, startAngle, angle, false, paint)
             startAngle += angle
         }
 
         canvas.drawText(
-            "%.2f%%".format(data.sum() * 100),
+            "%.2f%%".format(text),
             center.x,
             center.y + textPaint.textSize / 4,
             textPaint
         )
+        if (text == 100F) {
+            paint.color = colors[0]
+            canvas.drawArc(oval, startAngle, 1F, false, paint)
+        }
+
     }
 
     private fun generateRandomColor() = Random.nextInt(0xFF000000.toInt(), 0xFFFFFFFF.toInt())
