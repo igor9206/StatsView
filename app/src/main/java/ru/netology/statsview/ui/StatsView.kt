@@ -1,5 +1,7 @@
 package ru.netology.statsview.ui
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -7,6 +9,9 @@ import android.graphics.PointF
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
+import android.view.animation.BounceInterpolator
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import androidx.core.content.withStyledAttributes
 import ru.netology.statsview.R
 import ru.netology.statsview.utils.AndroidUtils
@@ -44,15 +49,18 @@ class StatsView @JvmOverloads constructor(
         }
     }
 
+    private var progress = 0F
+    private var valueAnimator: ValueAnimator? = null
     var data: List<Float> = emptyList()
         set(value) {
             field = value
-            invalidate()
+            update()
         }
 
     private var radius = 0F
     private var center = PointF()
     private var oval = RectF()
+
     private val paint = Paint(
         Paint.ANTI_ALIAS_FLAG
     ).apply {
@@ -98,11 +106,11 @@ class StatsView @JvmOverloads constructor(
             canvas.drawCircle(center.x, center.y, radius, emptyCircle)
         }
 
-        var startAngle = -90F
+        var startAngle = -90F + progress * 360
         data.forEachIndexed { index, datum ->
             val angle = datum / (data.max() * data.count()) * 360
             paint.color = colors.getOrElse(index) { generateRandomColor() }
-            canvas.drawArc(oval, startAngle, angle, false, paint)
+            canvas.drawArc(oval, startAngle, angle * progress, false, paint)
             startAngle += angle
         }
 
@@ -115,6 +123,27 @@ class StatsView @JvmOverloads constructor(
         if (text == 100F) {
             paint.color = colors[0]
             canvas.drawArc(oval, startAngle, 1F, false, paint)
+        }
+
+    }
+
+    private fun update() {
+        valueAnimator?.let {
+            it.removeAllListeners()
+            it.cancel()
+        }
+
+        progress = 0F
+
+        valueAnimator = ValueAnimator.ofFloat(0F, 1F).apply {
+            addUpdateListener { anim ->
+                progress = anim.animatedValue as Float
+                invalidate()
+            }
+            duration = 1000
+            interpolator = LinearInterpolator()
+        }.also {
+            it.start()
         }
 
     }
